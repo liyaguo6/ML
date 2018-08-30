@@ -1,7 +1,7 @@
 __author__ = 'multiangle'
 
 import math
-import File_Interface as FI
+import word2vec_huffmantree.File_Interface as FI
 from operator import itemgetter as _itemgetter
 import numpy as np
 import jieba

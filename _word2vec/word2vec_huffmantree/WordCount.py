@@ -4,7 +4,7 @@ __author__ = 'multiangle'
 from collections import Counter
 from operator import itemgetter as _itemgetter
 import jieba
-import File_Interface as FI
+import word2vec_huffmantree.File_Interface as FI
 
 class WordCounter():
     # can calculate the freq of words in a text list
@@ -36,7 +36,7 @@ class WordCounter():
         filtered_word_list = []
         count = 0
         for line in text_list:
-            res = jieba.cut(line,cut_all=cut_all)
+            res = jieba.cut(line[0],cut_all=cut_all)
             res = list(res)
             text_list[count] = res
             count += 1

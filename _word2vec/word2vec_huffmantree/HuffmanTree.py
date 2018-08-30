@@ -104,6 +104,7 @@ class HuffmanTree():
             code = node.Huffman
             # print(word,'\t',code.__len__(),'\t',node.possibility)
             word_dict[word]['Huffman'] = code
+        # print(word_dict)
 
     def merge(self,node1,node2):
         top_pos = node1.possibility + node2.possibility
@@ -114,6 +115,7 @@ class HuffmanTree():
         else:
             top_node.left = node2
             top_node.right = node1
+        # print(top_node)
         return top_node
 
 
