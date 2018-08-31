@@ -60,7 +60,8 @@ class word2vec():
     def init_op(self):
         self.sess = tf.Session(graph=self.graph)
         self.sess.run(self.init)
-        self.summary_writer = tf.train.SummaryWriter(self.logdir, self.sess.graph)
+        # self.summary_writer = tf.train.SummaryWriter(self.logdir, self.sess.graph)
+        self.summary_writer = tf.summary.FileWriter(self.logdir, self.sess.graph)
 
     def build_graph(self):
         self.graph = tf.Graph ()
@@ -90,7 +91,8 @@ class word2vec():
             )
 
             # tensorboard 相关
-            tf.scalar_summary('loss', self.loss)  # 让tensorflow记录参数
+            # tf.scalar_summary('loss', self.loss)  # 让tensorflow记录参数
+            tf.summary.scalar('loss', self.loss)  # 让tensorflow记录参数
 
             # 根据 nce loss 来更新梯度和embedding
             self.train_op = tf.train.GradientDescentOptimizer(learning_rate=0.1).minimize(self.loss)  # 训练操作
@@ -102,22 +104,24 @@ class word2vec():
             )
 
             avg_l2_model = tf.reduce_mean(vec_l2_model)
-            tf.scalar_summary('avg_vec_model', avg_l2_model)
+            # tf.scalar_summary('avg_vec_model', avg_l2_model)
+            tf.summary.scalar('avg_vec_model', avg_l2_model)
 
-            self.normed_embedding = self.embedding_dict / vec_l2_model
+            self.normed_embedding = self.embedding_dict / vec_l2_model  #全局词向量
             # self.embedding_dict = norm_vec # 对embedding向量正则化
-            test_embed = tf.nn.embedding_lookup(self.normed_embedding, self.test_word_id)
+            test_embed = tf.nn.embedding_lookup(self.normed_embedding, self.test_word_id)  #部分验证的词向量
             self.similarity = tf.matmul(test_embed, self.normed_embedding, transpose_b=True)
 
             # 变量初始化
             self.init = tf.global_variables_initializer()
 
-            self.merged_summary_op = tf.merge_all_summaries()
+            # self.merged_summary_op = tf.merge_all_summaries()
+            self.merged_summary_op = tf.summary.merge_all()
 
             self.saver = tf.train.Saver()
 
     def train_by_sentence(self, input_sentence=[]):
-        #  input_sentence: [sub_sent1, sub_sent2, ...]
+        #  input_sentence: [[sub_sent1], [sub_sent2], ...]
         # 每个sub_sent是一个单词序列，例如['这次','大选','让']
         sent_num = input_sentence.__len__()
         batch_inputs = []
@@ -131,12 +135,16 @@ class word2vec():
                         continue
                     else:
                         input_id = self.word2id.get(sent[i])
+                        # print(sent[i],":",input_id)
                         label_id = self.word2id.get(sent[index])
+                        # print(sent[index],":",label_id)
                         if not (input_id and label_id):
                             continue
                         batch_inputs.append(input_id)
                         batch_labels.append(label_id)
+                print("*"*20)
         if len(batch_inputs) == 0:
+            print(input_sentence)
             return
         batch_inputs = np.array(batch_inputs, dtype=np.int32)
         batch_labels = np.array(batch_labels, dtype=np.int32)
@@ -153,7 +161,7 @@ class word2vec():
         self.train_loss_records.append(loss_val)
         # self.train_loss_k10 = sum(self.train_loss_records)/self.train_loss_records.__len__()
         self.train_loss_k10 = np.mean(self.train_loss_records)
-        if self.train_sents_num % 1000 == 0:
+        if self.train_sents_num % 100 == 0:
             self.summary_writer.add_summary(summary_str, self.train_sents_num)
             print("{a} sentences dealed, loss: {b}"
                   .format(a=self.train_sents_num, b=self.train_loss_k10))
@@ -272,6 +280,7 @@ if __name__ == '__main__':
           .format(n1=len(raw_word_list), n2=len(word_count)))
     word_count = word_count.most_common(30)
     word_list = [x[0] for x in word_count]
+    # print(sentence_list)
     # # 创建模型，训练
     w2v = word2vec(vocab_list=word_list,  # 词典集
                    embedding_size=20,
@@ -279,16 +288,22 @@ if __name__ == '__main__':
                    learning_rate=0.01,
                    num_sampled=10,  # 负采样个数
                    logdir='/tmp/280')  # tensorboard记录地址
-    #
-    # num_steps = 10000
-    # for i in range(num_steps):
-    #     # print (i%len(sentence_list))
-    #     sent = sentence_list[i % len(sentence_list)]
-    #     w2v.train_by_sentence([sent])
+    print(w2v.word2id)
+    # #
+    num_steps =3000
+    for i in range(num_steps):
+        print (i%len(sentence_list))
+        sent = sentence_list[i % len(sentence_list)]
+    # w2v.train_by_sentence([['数学', '拾遗', '清代', '丁取忠', '撰', '中国', '数学', '名词', '审查', '委员会', '研究', '算学', '数学', '两词', '状况', '确认', '数学', '意义']])
     # w2v.save_model('model')
     #
+    # with open('model/params.pkl','rb') as f:
+    #     modle =pkl.load(f)
+    #     print(modle)
+
+
     # w2v.load_model('model')
-    # test_word = ['天地', '级别']
+    # test_word = ['数学', '科学']
     # test_id = [word_list.index(x) for x in test_word]
     # test_words, near_words, sim_mean, sim_var = w2v.cal_similarity(test_id)
     # print(test_words, near_words, sim_mean, sim_var)
