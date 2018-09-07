@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
-from cnn import *
-from data_utils import get_CIFAR10_data
-from solver import Solver
+from CNN_TYD.cnn import *
+from CNN_TYD.data_utils import get_CIFAR10_data
+from CNN_TYD.solver import Solver
 
 data = get_CIFAR10_data()
 model = ThreeLayerConvNet(reg=0.9)
@@ -32,8 +32,8 @@ plt.show()
 best_model = model
 y_test_pred = np.argmax(best_model.loss(data['X_test']), axis=1)
 y_val_pred = np.argmax(best_model.loss(data['X_val']), axis=1)
-print 'Validation set accuracy: ', (y_val_pred == data['y_val']).mean()
-print 'Test set accuracy: ', (y_test_pred == data['y_test']).mean()
+print('Validation set accuracy: ', (y_val_pred == data['y_val']).mean())
+print('Test set accuracy: ', (y_test_pred == data['y_test']).mean())
 # Validation set accuracy:  about 52.9%
 # Test set accuracy:  about 54.7%
 

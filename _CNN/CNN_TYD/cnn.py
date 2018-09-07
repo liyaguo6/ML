@@ -35,8 +35,8 @@ class ThreeLayerConvNet(object):
 
     #     # pass conv_param to the forward pass for the convolutional layer
         filter_size = W1.shape[2]
-        print(filter_size)
-        conv_param = {'stride': 1, 'pad': (filter_size - 1) / 2}
+        # print(filter_size)
+        conv_param = {'stride': 1, 'pad': int((filter_size - 1) / 2)}
 
     #     # pass pool_param to the forward pass for the max-pooling layer
         pool_param = {'pool_height': 2, 'pool_width': 2, 'stride': 2}

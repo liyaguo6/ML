@@ -146,8 +146,8 @@ def conv_forward_naive(x, w, b, conv_param):
     N, C, H, W = x.shape  #N样本个数 #C当前输入channel #H 图像高  #W图像的高
     F, C, HH, WW = w.shape #F特征图的个数  #C特征图层数 #HH 特征图高 ##特征图的高
     x_padded = np.pad(x, ((0, 0), (0, 0), (pad, pad), (pad, pad)), mode='constant')
-    H_new = 1 + (H + 2 * pad - HH) / stride   #output大小
-    W_new = 1 + (W + 2 * pad - WW) / stride    #output大小
+    H_new = int(1 + (H + 2 * pad - HH) / stride)   #output大小
+    W_new = int(1 + (W + 2 * pad - WW) / stride)   #output大小
     s = stride
     out = np.zeros((N, F, H_new, W_new))    #特征图
 
@@ -200,16 +200,16 @@ def  conv_backward_naive(dout, cache):
 
     return dx, dw, db
 
-if __name__ == '__main__':
-    dout=np.random.randint(3,4,(2,4,32,32))
-    x=np.random.randint(5,7,(2,3,32,32))
-    w = np.random.randint(3,4,(4,3,7,7))
-    b=np.ones(4)
-    conv_param = {'stride': 1, 'pad': int((7 - 1) / 2)}
-    ret=conv_backward_naive(dout,(x,w,b,conv_param))
-    print(ret[0].shape)
-    print(ret[1].shape)
-    print(ret[2])
+# if __name__ == '__main__':
+#     dout=np.random.randint(3,4,(2,4,32,32))
+#     x=np.random.randint(5,7,(2,3,32,32))
+#     w = np.random.randint(3,4,(4,3,7,7))
+#     b=np.ones(4)
+#     conv_param = {'stride': 1, 'pad': int((7 - 1) / 2)}
+#     ret=conv_backward_naive(dout,(x,w,b,conv_param))
+#     print(ret[0].shape)
+#     print(ret[1].shape)
+#     print(ret[2])
 
 
 
@@ -217,8 +217,8 @@ def max_pool_forward_naive(x, pool_param):
     HH, WW = pool_param['pool_height'], pool_param['pool_width']
     s = pool_param['stride']
     N, C, H, W = x.shape
-    H_new = 1 + (H - HH) / s
-    W_new = 1 + (W - WW) / s
+    H_new = int(1 + (H - HH) / s)
+    W_new = int(1 + (W - WW) / s)
     out = np.zeros((N, C, H_new, W_new))
     for i in range(N):
         for j in range(C):
@@ -237,8 +237,8 @@ def max_pool_backward_naive(dout, cache):
     HH, WW = pool_param['pool_height'], pool_param['pool_width']
     s = pool_param['stride']
     N, C, H, W = x.shape
-    H_new = 1 + (H - HH) / s
-    W_new = 1 + (W - WW) / s
+    H_new = int(1 + (H - HH) / s)
+    W_new = int(1 + (W - WW) / s)
     dx = np.zeros_like(x)
     for i in range(N):
         for j in range(C):
