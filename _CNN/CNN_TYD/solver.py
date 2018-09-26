@@ -223,7 +223,7 @@ class Solver(object):
     iterations_per_epoch = max(num_train / self.batch_size, 1)
     num_iterations = int(self.num_epochs * iterations_per_epoch)  #10个epochs 一个epoch迭代250次 每次迭代两个样本
 
-    for t in range(num_iterations):
+    for t in range(num_iterations):#2500
       self._step()
 
       # Maybe print training loss

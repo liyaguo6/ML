@@ -19,6 +19,8 @@ def affine_forward(x, w, b):
     # Reshape x into rows
     N = x.shape[0]
     x_row = x.reshape(N, -1)         # (N,D) 按照样本个数把数组拉直
+    print(x_row)
+    print(x_row.shape)
     out = np.dot(x_row, w) + b       # (N,M)
     cache = (x, w, b)
 
@@ -140,12 +142,15 @@ def softmax_loss(x, y):
 def ReLU(x):
     """ReLU non-linearity."""    
     return np.maximum(0, x)
+
+
 def conv_forward_naive(x, w, b, conv_param):
     """卷积层前向传播"""
     stride, pad = conv_param['stride'], conv_param['pad']
     N, C, H, W = x.shape  #N样本个数 #C当前输入channel #H 图像高  #W图像的高
     F, C, HH, WW = w.shape #F特征图的个数  #C特征图层数 #HH 特征图高 ##特征图的高
     x_padded = np.pad(x, ((0, 0), (0, 0), (pad, pad), (pad, pad)), mode='constant')
+    # print(x_padded)
     H_new = int(1 + (H + 2 * pad - HH) / stride)   #output大小
     W_new = int(1 + (W + 2 * pad - WW) / stride)   #output大小
     s = stride
@@ -164,6 +169,24 @@ def conv_forward_naive(x, w, b, conv_param):
     cache = (x, w, b, conv_param)
 
     return out, cache    #存储器
+
+# if __name__ == '__main__':
+#     import numpy as np
+#     x=np.random.randint(1,3,(2,3,8,8))
+#     w=np.random.randint(2,4,(3,3,2,2))
+#     b=np.ones(3)
+#     conv_param = {'stride': 1, 'pad': 2}
+#
+#     # print(w)
+#     # print(b)
+#     ret=conv_forward_naive(x,w,b,conv_param)
+#     # print(ret[0])
+#     ret1 =relu_forward(ret[0])
+#     print(ret1[0])
+#     pool_param ={'pool_height': 2, 'pool_width': 2, 'stride': 2}
+#     max_pool_forward_naive(ret1[0],pool_param)
+
+
 
 
 def  conv_backward_naive(dout, cache):
@@ -216,12 +239,12 @@ def  conv_backward_naive(dout, cache):
 def max_pool_forward_naive(x, pool_param):
     HH, WW = pool_param['pool_height'], pool_param['pool_width']
     s = pool_param['stride']
-    N, C, H, W = x.shape
+    N, F, H, W = x.shape
     H_new = int(1 + (H - HH) / s)
     W_new = int(1 + (W - WW) / s)
-    out = np.zeros((N, C, H_new, W_new))
+    out = np.zeros((N, F, H_new, W_new))
     for i in range(N):
-        for j in range(C):
+        for j in range(F):
             for k in range(H_new):
                 for l in range(W_new):
                     window = x[i, j, k*s:HH+k*s, l*s:WW+l*s] 
@@ -249,3 +272,29 @@ def max_pool_backward_naive(dout, cache):
                     dx[i, j, k*s:HH+k*s, l*s:WW+l*s] = (window == m) * dout[i, j, k, l]
 
     return dx
+
+
+# if __name__ == '__main__':
+    # import numpy as np
+    # x=np.random.randint(1,3,(2,3,32,32))
+    # w=np.random.randint(2,4,(32,3,7,7))
+    # b=np.ones(32)
+    # conv_param = {'stride': 1, 'pad': 3}
+    #
+    # # print(w)
+    # # print(b)
+    # ret=conv_forward_naive(x,w,b,conv_param)
+    # # print(ret[0])
+    # ret1 =relu_forward(ret[0])
+    # pool_param ={'pool_height': 2, 'pool_width': 2, 'stride': 2}
+    # ret2=max_pool_forward_naive(ret1[0],pool_param)
+    # # print(ret2[0])
+    # w2 = np.random.randn(32*16*16,100)
+    # b2 = np.ones(100)
+    # ret3=affine_forward(ret2[0],w2,b2)
+    # w3 =np.random.randn(100,10)
+    # b3 = np.ones(10)
+    # ret4=affine_forward(ret3[0],w3,b3)
+    # print(ret4[0])
+    # print(ret4[0].shape)
+
