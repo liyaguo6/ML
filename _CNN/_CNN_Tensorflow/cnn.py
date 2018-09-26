@@ -14,36 +14,38 @@ class TextCnn:
         with tf.device('/cpu:0'), tf.name_scope('embedding'):
             self.W = tf.Variable(tf.random_uniform([vocab_size, embedding_size], -1.0, -1.0, name='W'))
             self.embedded_chars = tf.nn.embedding_lookup(self.W, self.input_x)
-            self.embedded_chars_expended = tf.expand_dims(self.embedded_chars, -1)
+            self.embedded_chars_expended = tf.expand_dims(self.embedded_chars,
+                                                          -1)  # shape : [ batch , height , width , 1 ]
 
         pooled_outputs = []
         for i, filter_sizes in enumerate(filter_sizes):  # filter_size：[2,3,4]
             with tf.name_scope('conv_maxpool-%s' % filter_sizes):
                 filter_shape = [filter_sizes, embedding_size, 1, num_filters]
-                W = tf.Variable(tf.truncated_normal(filter_shape, stddev=0.1), name='W')
+                W = tf.Variable(tf.truncated_normal(filter_shape, stddev=0.1),
+                                name='W')  # shape : [filter_sizes, embedding_size, 1, num_filters]
                 b = tf.Variable(tf.constant(0.1, shape=[num_filters], name='b'))
                 conv = tf.nn.conv2d(self.embedded_chars_expended,
                                     W,
                                     strides=[1, 1, 1, 1],
                                     padding='VALID',
                                     name='conv'
-                                    )
+                                    )  # shape :  [ batch , sequence_length - filter_sizes + 1 , 1 , num_filters ]
                 h = tf.nn.relu(tf.nn.bias_add(conv, b), name='relu')
                 pooled = tf.nn.max_pool(h,
                                         ksize=[1, sequence_length - filter_sizes + 1, 1, 1],
                                         strides=[1, 1, 1, 1],
                                         padding='VALID',
                                         name='pool'
-                                        )
+                                        )  # shape: [batch , 1 , 1 , num_filters]
                 pooled_outputs.append(pooled)
         num_filters_total = num_filters * len(filter_sizes)  # 3*128
-        self.h_pool = tf.concat(pooled_outputs,3)  #????
-        self.h_pool_flat = tf.reshape(self.h_pool,[-1,num_filters_total])
+        self.h_pool = tf.concat(pooled_outputs, 3)  # ???? [batch,1,1,num_filters_total]
+        self.h_pool_flat = tf.reshape(self.h_pool, [-1, num_filters_total])   #shape: [batch,num_filters_total] =
 
         with tf.name_scope("dropout"):
-            self.h_drop = tf.nn.dropout( self.h_pool_flat,self.dropout_keep_prob)
+            self.h_drop = tf.nn.dropout(self.h_pool_flat, self.dropout_keep_prob)
 
         with tf.name_scope('output'):
-            pass
-
-
+            W = tf.get_variable('W',shape=[num_filters_total,num_classes],initializer=tf.contrib.layers.xavier_initializer())
+            b = tf.Variable(tf.constant(0.1,shape=[num_classes]),name='b')
+            l2_loss += tf.nn.l2_loss(W)
