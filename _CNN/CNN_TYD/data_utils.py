@@ -72,7 +72,10 @@ def get_CIFAR10_data(num_training=500, num_validation=50, num_test=50):
     }
 
 if __name__ == '__main__':
-    get_CIFAR10_data()
+    ret=get_CIFAR10_data()
+    print(ret)
+    print(ret['X_train'].shape)
+    print(ret['y_train'])
 
 
 
