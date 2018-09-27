@@ -12,8 +12,8 @@ class TextCnn:
         # Keeping track of l2 regularization loss (optional)
         l2_loss = tf.constant(0.0)
         with tf.device('/cpu:0'), tf.name_scope('embedding'):
-            self.W = tf.Variable(tf.random_uniform([vocab_size, embedding_size], -1.0, -1.0, name='W'))
-            self.embedded_chars = tf.nn.embedding_lookup(self.W, self.input_x)
+            self.W = tf.Variable(tf.random_uniform([vocab_size, embedding_size], -1.0, 1.0, name='W'))  # ???
+            self.embedded_chars = tf.nn.embedding_lookup(self.W, self.input_x)  # ???
             self.embedded_chars_expended = tf.expand_dims(self.embedded_chars,
                                                           -1)  # shape : [ batch , height , width , 1 ]
 
@@ -40,12 +40,29 @@ class TextCnn:
                 pooled_outputs.append(pooled)
         num_filters_total = num_filters * len(filter_sizes)  # 3*128
         self.h_pool = tf.concat(pooled_outputs, 3)  # ???? [batch,1,1,num_filters_total]
-        self.h_pool_flat = tf.reshape(self.h_pool, [-1, num_filters_total])   #shape: [batch,num_filters_total] =
+        self.h_pool_flat = tf.reshape(self.h_pool, [-1, num_filters_total])  # shape: [batch,num_filters_total] =
 
         with tf.name_scope("dropout"):
             self.h_drop = tf.nn.dropout(self.h_pool_flat, self.dropout_keep_prob)
 
         with tf.name_scope('output'):
-            W = tf.get_variable('W',shape=[num_filters_total,num_classes],initializer=tf.contrib.layers.xavier_initializer())
-            b = tf.Variable(tf.constant(0.1,shape=[num_classes]),name='b')
+            W = tf.get_variable('W',
+                                shape=[num_filters_total, num_classes],
+                                initializer=tf.contrib.layers.xavier_initializer()
+                                )
+            b = tf.Variable(
+                tf.constant(0.1, shape=[num_classes]),
+                name='b'
+            )
             l2_loss += tf.nn.l2_loss(W)
+            l2_loss += tf.nn.l2_loss(b)
+            self.scores = tf.nn.xw_plus_b(self.h_drop, W, b, name='score')
+            self.predictions = tf.argmax(self.scores, 1, name='predictions')
+
+        with tf.name_scope('loss'):
+            losses = tf.nn.softmax_cross_entropy_with_logits(logits=self.scores, labels=self.input_y)
+            self.losses = tf.reduce_mean(losses) + l2_loss*l2_reg_lambda
+
+        with tf.name_scope('accuracy'):
+            correct_predictions =tf.equal(self.predictions,tf.argmax(self.input_y,1))
+            self.accuracy = tf.reduce_mean(tf.cast(correct_predictions, "float"), name="accuracy")

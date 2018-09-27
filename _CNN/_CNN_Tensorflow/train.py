@@ -8,6 +8,7 @@ from tensorflow.contrib import learn
 import data
 import word2vec_helpers
 from .cnn import TextCNN
+
 # params
 
 
@@ -28,6 +29,15 @@ tf.flags.DEFINE_integer('batch_size', 64, 'Batch size')
 tf.flags.DEFINE_integer('num_epochs', 200, 'number of epochs')
 tf.flags.DEFINE_integer('evaluate_every', 100, 'evaluate_every')
 tf.flags.DEFINE_integer('checkpoint_every', 100, 'saving...')
+tf.flags.DEFINE_integer("num_checkpoints", 5, "Number of checkpoints to store (default: 5)")
+
+
+# Misc parameters
+tf.flags.DEFINE_boolean("allow_soft_placement", True, "Allow device soft device placement")
+tf.flags.DEFINE_boolean("log_device_placement", False, "Log placement of ops on devices")
+
+
+
 
 FLAGS = tf.flags.FLAGS
 FLAGS._parse_flags()
@@ -55,9 +65,10 @@ shuffle_indices = np.random.permutation(np.arange(len(y)))
 x_shuffled = x[shuffle_indices]
 y_shuffled = y[shuffle_indices]
 
-# Misc parameters
-tf.flags.DEFINE_boolean("allow_soft_placement", True, "Allow device soft device placement")
-tf.flags.DEFINE_boolean("log_device_placement", False, "Log placement of ops on devices")
+
+
+
+
 
 # Split train/test set
 # TODO: This is very crude, should use cross-validation
@@ -67,11 +78,11 @@ y_train, y_dev = y_shuffled[:dev_sample_index], y_shuffled[dev_sample_index:]
 
 print("Train/Dev split: {:d}/{:d}".format(len(y_train), len(y_dev)))
 
-
 # Training
 with tf.Graph().as_default():
     session_conf = tf.ConfigProto(
-        allow_soft_placement=FLAGS.allow_soft_placement,   #设置tf.ConfigProto()中参数allow_soft_placement=True，允许tf自动选择一个存在并且可用的设备来运行操作。
+        allow_soft_placement=FLAGS.allow_soft_placement,
+        # 设置tf.ConfigProto()中参数allow_soft_placement=True，允许tf自动选择一个存在并且可用的设备来运行操作。
         log_device_placement=FLAGS.log_device_placement)  # 设置tf.ConfigProto()中参数log_device_placement = True ,可以获取到 operations 和 Tensor 被指派到哪个设备(几号CPU或几号GPU)上运行,会在终端打印出各项操作是在哪个设备上运行的。
     sess = tf.Session(config=session_conf)
     with sess.as_default():
@@ -81,4 +92,14 @@ with tf.Graph().as_default():
             embedding_size=FLAGS.embedding_dim,
             filter_sizes=list(map(int, FLAGS.filter_sizes.split(","))),
             num_filters=FLAGS.num_filters,
-            l2_reg_lambda=FLAGS.l2_reg_lambda)
+            l2_reg_lambda=FLAGS.l2_reg_lambda
+        )
+
+        # Define Training procedure
+        global_step = tf.Variable(0,name='global_step')
+        optimizer = tf.train.AdamOptimizer(1e-3)
+        grads_and_vars = optimizer.compute_gradients(cnn.losses)
+        train_op = optimizer.apply_gradients(grads_and_vars,global_step)
+
+saver = tf.train.Saver(tf.global_variables(),max_to_keep=FLAGS.num_checkpoints)
+sess.run(tf.global_variables_initializer())
