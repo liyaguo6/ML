@@ -16,6 +16,7 @@ from .cnn import TextCNN
 tf.flags.DEFINE_float('dev_sample_percentage', 0.1, 'peecentage of training data to use for validation')
 tf.flags.DEFINE_string('positive_data_file', './rt-polaritydata/rt-polarity.pos', 'data source for the positive')
 tf.flags.DEFINE_string('negative_data_file', './rt-polaritydata/rt-polarity.neg', 'data source for the negative')
+tf.flags.DEFINE_integer("num_labels", 2, "Number of labels for data. (default: 2)")
 
 # Model Hparams
 tf.flags.DEFINE_integer('embedding_dim', 128, 'dimensionality of character')
@@ -31,19 +32,19 @@ tf.flags.DEFINE_integer('evaluate_every', 100, 'evaluate_every')
 tf.flags.DEFINE_integer('checkpoint_every', 100, 'saving...')
 tf.flags.DEFINE_integer("num_checkpoints", 5, "Number of checkpoints to store (default: 5)")
 
-
 # Misc parameters
 tf.flags.DEFINE_boolean("allow_soft_placement", True, "Allow device soft device placement")
 tf.flags.DEFINE_boolean("log_device_placement", False, "Log placement of ops on devices")
 
 
-
-
+# Parse parameters from commands
 FLAGS = tf.flags.FLAGS
 FLAGS._parse_flags()
 print('\nParameters:')
 for attr, val in sorted(FLAGS.__flags.items()):
     print('{}={}'.format(attr.upper(), val))
+
+
 
 # load data
 x_text, y = data.load_data_and_lables(FLAGS.positive_data_file, FLAGS.negative_data_file)
@@ -64,11 +65,6 @@ np.random.seed(10)
 shuffle_indices = np.random.permutation(np.arange(len(y)))
 x_shuffled = x[shuffle_indices]
 y_shuffled = y[shuffle_indices]
-
-
-
-
-
 
 # Split train/test set
 # TODO: This is very crude, should use cross-validation
@@ -96,10 +92,50 @@ with tf.Graph().as_default():
         )
 
         # Define Training procedure
-        global_step = tf.Variable(0,name='global_step')
+        global_step = tf.Variable(0, name='global_step')
         optimizer = tf.train.AdamOptimizer(1e-3)
         grads_and_vars = optimizer.compute_gradients(cnn.losses)
-        train_op = optimizer.apply_gradients(grads_and_vars,global_step)
+        train_op = optimizer.apply_gradients(grads_and_vars, global_step)
 
-saver = tf.train.Saver(tf.global_variables(),max_to_keep=FLAGS.num_checkpoints)
-sess.run(tf.global_variables_initializer())
+        saver = tf.train.Saver(tf.global_variables(), max_to_keep=FLAGS.num_checkpoints)
+        sess.run(tf.global_variables_initializer())
+
+
+        def train_step(x_batch, y_batch):
+            feed_dict = {
+                cnn.input_x: x_batch,
+                cnn.input_y: y_batch,
+                cnn.dropout_keep_prob: FLAGS.dropout
+            }
+            _, step, summeries, loss, accuracy = sess.run(
+                [train_op, global_step, train_summary_op, cnn.losses,cnn.accuracy]
+            )
+            time_str = datetime.datetime.now().isoformat()
+            print('{}:step:{} , loss:{} , acc:{}'.format(time_str,global_step,loss,accuracy))
+
+
+        def dev_step(x_batch, y_batch):
+            feed_dict = {
+                cnn.input_x: x_batch,
+                cnn.input_y: y_batch,
+                cnn.dropout_keep_prob: 1.0
+            }
+            _, step, summeries, loss, accuracy = sess.run(
+                [train_op, global_step, train_summary_op, cnn.losses, cnn.accuracy],feed_dict=feed_dict
+            )
+            time_str = datetime.datetime.now().isoformat()
+            print('{}: step:{} , loss:{} , acc:{}'.format(time_str, global_step, loss, accuracy))
+
+
+        batchs = data.batch_iter(list(zip(x_train, y_train)), FLAGS.batch_size, FLAGS.num_epochs)
+
+        for batch in batchs:
+            x_batch, y_batch = zip(*batch)
+            train_step(x_batch, y_batch)
+            current_step = tf.train.global_step(sess,global_step)
+            if current_step % FLAGS.evaluate_every ==0:
+                print('\n evaluate_every')
+                dev_step(x_dev,y_dev)
+            if current_step % FLAGS.checkpoint_every == 0:
+                path = saver.save(sess,'./',global_step=current_step)
+
