@@ -64,13 +64,13 @@ def run_main():
         sys.exit(1)
     input_file, output_model_file, output_vector_file = sys.argv[1:4]
 
-    generate_word2vec_files(input_file, output_model_file, output_vector_file)
+    # generate_word2vec_files(input_file, output_model_file, output_vector_file)
 
 
 
-if __name__ == '__main__':
-    def test():
-        vectors = embedding_sentences([['first', 'sentence'], ['second', 'sentence']], embedding_size=4, min_count=1)
-        print(print(vectors))
-        print(type(vectors))
-    test()
+# if __name__ == '__main__':
+#     def test():
+#         vectors = embedding_sentences([['first', 'sentence'], ['second', 'sentence']], embedding_size=4, min_count=1)
+#         print(print(vectors))
+#         print(type(vectors))
+#     run_main()

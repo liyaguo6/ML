@@ -7,7 +7,7 @@ import os
 from tensorflow.contrib import learn
 import data
 import word2vec_helpers
-from .cnn import TextCNN
+import cnn
 
 # params
 
@@ -16,6 +16,7 @@ from .cnn import TextCNN
 tf.flags.DEFINE_float('dev_sample_percentage', 0.1, 'peecentage of training data to use for validation')
 tf.flags.DEFINE_string('positive_data_file', './rt-polaritydata/rt-polarity.pos', 'data source for the positive')
 tf.flags.DEFINE_string('negative_data_file', './rt-polaritydata/rt-polarity.neg', 'data source for the negative')
+
 tf.flags.DEFINE_integer("num_labels", 2, "Number of labels for data. (default: 2)")
 
 # Model Hparams
@@ -23,7 +24,7 @@ tf.flags.DEFINE_integer('embedding_dim', 128, 'dimensionality of character')
 tf.flags.DEFINE_string('filter_size', '3,4,5', 'filter size')
 tf.flags.DEFINE_integer('num_filters', 128, 'Number of filters')
 tf.flags.DEFINE_float('dropout', 0.5, 'Dropout')
-tf.flags.DEFINE_float('L2_reg_lambda', 0.0, 'L2')
+tf.flags.DEFINE_float('L2_reg_lambda', 0.01, 'L2')
 
 # train params
 tf.flags.DEFINE_integer('batch_size', 64, 'Batch size')
@@ -82,24 +83,58 @@ with tf.Graph().as_default():
         log_device_placement=FLAGS.log_device_placement)  # 设置tf.ConfigProto()中参数log_device_placement = True ,可以获取到 operations 和 Tensor 被指派到哪个设备(几号CPU或几号GPU)上运行,会在终端打印出各项操作是在哪个设备上运行的。
     sess = tf.Session(config=session_conf)
     with sess.as_default():
-        cnn = TextCNN(
+        cnn = cnn.TextCnn(
             sequence_length=x_train.shape[1],
             num_classes=y_train.shape[1],
             embedding_size=FLAGS.embedding_dim,
-            filter_sizes=list(map(int, FLAGS.filter_sizes.split(","))),
+            filter_sizes=list(map(int, FLAGS.filter_size.split(","))),
             num_filters=FLAGS.num_filters,
-            l2_reg_lambda=FLAGS.l2_reg_lambda
+            l2_reg_lambda=FLAGS.L2_reg_lambda
         )
 
         # Define Training procedure
-        global_step = tf.Variable(0, name='global_step')
+        global_step = tf.Variable(0, name='global_step',trainable=False)
         optimizer = tf.train.AdamOptimizer(1e-3)
         grads_and_vars = optimizer.compute_gradients(cnn.losses)
-        train_op = optimizer.apply_gradients(grads_and_vars, global_step)
+        train_op = optimizer.apply_gradients(grads_and_vars, global_step=global_step)
 
+
+
+
+        # Keep track of gradient values and sparsity (optional)
+        grad_summaries = []
+        for g, v in grads_and_vars:
+            if g is not None:
+                grad_hist_summary = tf.summary.histogram("{}/grad/hist".format(v.name), g)
+                sparsity_summary = tf.summary.scalar("{}/grad/sparsity".format(v.name), tf.nn.zero_fraction(g))
+                grad_summaries.append(grad_hist_summary)
+                grad_summaries.append(sparsity_summary)
+        grad_summaries_merged = tf.summary.merge(grad_summaries)
+
+        # Output directory for models and summaries
+        print("Writing to {}\n".format(out_dir))
+
+        # Summaries for loss and accuracy
+        loss_summary = tf.summary.scalar("loss", cnn.losses)
+        acc_summary = tf.summary.scalar("accuracy", cnn.accuracy)
+
+        # Train Summaries
+        train_summary_op = tf.summary.merge([loss_summary, acc_summary, grad_summaries_merged])
+        train_summary_dir = os.path.join(out_dir, "summaries", "train")
+        train_summary_writer = tf.summary.FileWriter(train_summary_dir, sess.graph)
+
+        # Dev summaries
+        dev_summary_op = tf.summary.merge([loss_summary, acc_summary])
+        dev_summary_dir = os.path.join(out_dir, "summaries", "dev")
+        dev_summary_writer = tf.summary.FileWriter(dev_summary_dir, sess.graph)
+
+        # Checkpoint directory. Tensorflow assumes this directory already exists so we need to create it
+        checkpoint_dir = os.path.abspath(os.path.join(out_dir, "checkpoints"))
+        checkpoint_prefix = os.path.join(checkpoint_dir, "model")
+        if not os.path.exists(checkpoint_dir):
+            os.makedirs(checkpoint_dir)
         saver = tf.train.Saver(tf.global_variables(), max_to_keep=FLAGS.num_checkpoints)
         sess.run(tf.global_variables_initializer())
-
 
         def train_step(x_batch, y_batch):
             feed_dict = {
@@ -108,10 +143,10 @@ with tf.Graph().as_default():
                 cnn.dropout_keep_prob: FLAGS.dropout
             }
             _, step, summeries, loss, accuracy = sess.run(
-                [train_op, global_step, train_summary_op, cnn.losses,cnn.accuracy]
+                [train_op,global_step , train_summary_op, cnn.losses,cnn.accuracy],feed_dict=feed_dict
             )
             time_str = datetime.datetime.now().isoformat()
-            print('{}:step:{} , loss:{} , acc:{}'.format(time_str,global_step,loss,accuracy))
+            print('{}:step:{} , loss:{} , acc:{}'.format(time_str,step,loss,accuracy))
 
 
         def dev_step(x_batch, y_batch):
@@ -120,11 +155,11 @@ with tf.Graph().as_default():
                 cnn.input_y: y_batch,
                 cnn.dropout_keep_prob: 1.0
             }
-            _, step, summeries, loss, accuracy = sess.run(
-                [train_op, global_step, train_summary_op, cnn.losses, cnn.accuracy],feed_dict=feed_dict
+            step, summeries, loss, accuracy = sess.run(
+                [ global_step, train_summary_op, cnn.losses, cnn.accuracy],feed_dict=feed_dict
             )
             time_str = datetime.datetime.now().isoformat()
-            print('{}: step:{} , loss:{} , acc:{}'.format(time_str, global_step, loss, accuracy))
+            print('{}: step:{} , loss:{} , acc:{}'.format(time_str, step, loss, accuracy))
 
 
         batchs = data.batch_iter(list(zip(x_train, y_train)), FLAGS.batch_size, FLAGS.num_epochs)
@@ -138,4 +173,5 @@ with tf.Graph().as_default():
                 dev_step(x_dev,y_dev)
             if current_step % FLAGS.checkpoint_every == 0:
                 path = saver.save(sess,'./',global_step=current_step)
+                print("Saved model checkpoint to {}\n".format(path))
 
