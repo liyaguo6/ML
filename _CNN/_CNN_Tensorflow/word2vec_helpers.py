@@ -15,7 +15,7 @@ def output_vocab(vocab):
         print(k)
 
 
-def embedding_sentences(sentences, embedding_size=128, window=5, min_count=5, file_to_load=None, file_to_save=None):
+def embedding_sentences(sentences, embedding_size=128, window=5, min_count=3, file_to_load=None, file_to_save=None):
     if file_to_load is not None:
         w2vModel = Word2Vec.load(file_to_load)
     else:
