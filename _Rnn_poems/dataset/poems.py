@@ -74,3 +74,11 @@ def generate_batch(batch_size, poems_vec, word_to_int):
         x_batches.append(x_data)
         y_batches.append(y_data)
     return x_batches, y_batches
+
+
+if __name__ == '__main__':
+    poems_vector, word_int_map, words = process_poems(r'D:\MyProj\Machine-learning\_Rnn_poems\dataset\data\tests')
+    x_batches, y_batches=generate_batch(4,poems_vector,word_int_map)
+    print(x_batches)
+    print("#"*20)
+    print(y_batches)
