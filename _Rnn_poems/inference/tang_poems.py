@@ -71,6 +71,14 @@ def run_training():
             saver.save(sess, os.path.join(FLAGS.checkpoints_dir, FLAGS.model_prefix), global_step=epoch)
             print('[INFO] Last epoch were saved, next time will start from epoch {}.'.format(epoch))
 
+def to_word(predict, vocabs):
+    t = np.cumsum(predict)
+    s = np.sum(predict)
+    sample = int(np.searchsorted(t, np.random.rand(1) * s))
+    if sample > len(vocabs):
+        sample = len(vocabs) - 1
+    return vocabs[sample]
+
 
 
 
@@ -111,6 +119,12 @@ def gen_poem(begin_word):
         # word = words[np.argmax(probs_)]
         return poem
 
+# def pretty_print_poem(poem):
+#     poem_sentences = poem.split('。')
+#     for s in poem_sentences:
+#         if s != '' and len(s) > 10:
+#             print(s + '。')
+
 
 def main(is_train):
     if is_train:
@@ -118,7 +132,8 @@ def main(is_train):
         run_training()
     else:
         print('[INFO] write tang poem...')
-
+    #
         begin_word = input('全新藏头诗上线，输入起始字:')
         poem2 = gen_poem(begin_word)
-        pretty_print_poem(poem2)
+        # pretty_print_poem(poem2)
+        print(poem2)
