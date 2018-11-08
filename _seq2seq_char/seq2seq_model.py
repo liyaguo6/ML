@@ -80,7 +80,7 @@ def decoding_layer(target_letter_to_int, decoding_embedding_size, num_layers, rn
                                                            training_helper,
                                                            encoder_state,
                                                            output_layer)
-        training_decoder_output, _ = tf.contrib.seq2seq.dynamic_decode(training_decoder,
+        training_decoder_output, _ ,_= tf.contrib.seq2seq.dynamic_decode(training_decoder,
                                                                        impute_finished=True,
                                                                  maximum_iterations=max_target_sequence_length)
     # 5. Predicting decoder
@@ -96,7 +96,7 @@ def decoding_layer(target_letter_to_int, decoding_embedding_size, num_layers, rn
                                                              predicting_helper,
                                                              encoder_state,
                                                              output_layer)
-        predicting_decoder_output, _ = tf.contrib.seq2seq.dynamic_decode(predicting_decoder,
+        predicting_decoder_output, _,_ = tf.contrib.seq2seq.dynamic_decode(predicting_decoder,
                                                                          impute_finished=True,
                                                                          maximum_iterations=max_target_sequence_length)
 
