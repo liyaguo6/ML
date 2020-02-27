@@ -18,3 +18,11 @@
 
 [CBOW和skip-gram模型 四](https://blog.csdn.net/u014595019/article/details/51943428)
 
+
+## 4. 特征降维
+
+[基于主成分分析的降维](https://blog.csdn.net/weixin_44132035/article/details/104467580)
+
+## 5. 支持向量机
+
+[数据挖掘之SVM](https://blog.csdn.net/weixin_44132035/article/details/104108207)
