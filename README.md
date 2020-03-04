@@ -26,3 +26,6 @@
 ## 5. 支持向量机
 
 [数据挖掘之SVM](https://blog.csdn.net/weixin_44132035/article/details/104108207)
+
+## 线性判别分析
+[数据挖掘之LDA特征降维](https://blog.csdn.net/weixin_44132035/article/details/104620380)
